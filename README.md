@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/chinese_darkais_banner.png" alt="DarkAIs Eastern Dragon Banner" width="100%">
+
 # 🐉 The Chinese Open-Source AI Renaissance
 **The Definitive Architectural Guide to the Eastern Models Beating Llama-3**
 
