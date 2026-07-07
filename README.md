@@ -58,8 +58,6 @@ Beyond text, Chinese models are currently crushing the Vision leaderboards, part
 
 ## 📊 Benchmarks vs The West
 
-*(Benchmarks comparing Top Chinese Open-Weights against Western Counterparts)*
-
 | Model | Parameters (Active) | Context Length | MMLU | HumanEval (Code) | GSM8K (Math) |
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | **Qwen2-72B-Instruct** | 72B | 128K | **84.2** | **86.0** | **91.1** |
@@ -67,21 +65,45 @@ Beyond text, Chinese models are currently crushing the Vision leaderboards, part
 | **DeepSeek-V2** | 21B | 128K | 78.5 | 81.1 | 88.2 |
 | **Mistral Large** | Dense | 32K | 81.2 | 81.0 | 91.2 |
 
-> *Observation:* Qwen2-72B matches or beats Llama-3 70B across almost all reasoning and coding metrics, while DeepSeek-V2 achieves comparable performance while activating only 21B parameters, completely shifting the economics of AI hosting.
+---
+
+## 💻 Developer Resources
+
+### 1. Hardware Requirements (VRAM Vitals)
+Deploying these models requires precise memory management. Below is the minimum VRAM required to load the model (excluding KV Cache for context).
+
+| Model Size | Full Precision (FP16/BF16) | 8-bit Quantization (AWQ/GPTQ) | 4-bit Quantization (GGUF/AWQ) | Recommended GPU Setup |
+| :--- | :--- | :--- | :--- | :--- |
+| **7B - 9B** (Qwen/GLM) | ~14 - 18 GB | ~7 - 9 GB | ~4 - 6 GB | 1x RTX 3090 / 4090 |
+| **34B** (Yi-1.5) | ~68 GB | ~34 GB | ~18 GB | 1x RTX 4090 (4-bit) or 2x 3090 |
+| **72B** (Qwen2) | ~144 GB | ~72 GB | ~38 GB | 2x RTX 3090 (4-bit) or 2x A6000 |
+| **236B MoE** (DeepSeek) | ~472 GB | ~236 GB | ~120 GB | 2x H100 (8-bit) or 8x A100 |
+
+### 2. Prompt Formatting & Chat Templates
+Failing to use the correct Chat Template will cause severe hallucinations. Most Chinese models use the **ChatML** format (unlike Llama-3's `<|start_header_id|>`).
+
+**Qwen2 / Yi ChatML Format:**
+```text
+<|im_start|>system
+You are a Principal AI Engineer.<|im_end|>
+<|im_start|>user
+Write a quicksort in Python.<|im_end|>
+<|im_start|>assistant
+```
+
+### 3. The Fine-Tuning Stack
+The definitive tool for fine-tuning these models is **LLaMA-Factory** (also developed by Chinese researchers). It natively supports Qwen, DeepSeek, and Yi out of the box.
+- 🔗 **[LLaMA-Factory GitHub](https://github.com/hiyouga/LLaMA-Factory)**
+- Use it to perform memory-efficient **QLoRA** (Quantized Low-Rank Adaptation) fine-tuning on consumer GPUs using Unsloth integration.
 
 ---
 
 ## 🚀 Deployment & Serving Guide
 
-How to deploy these models locally or in your private cloud, bypassing proprietary APIs entirely.
-
-### Option 1: High-Throughput Serving (vLLM)
+### High-Throughput Serving (vLLM)
 For production environments, **vLLM** is required to utilize PagedAttention. It fully supports Qwen2 and DeepSeek architectures.
 
 ```bash
-# Install vLLM
-pip install vllm
-
 # Spin up a fast OpenAI-compatible server for Qwen2
 python -m vllm.entrypoints.openai.api_server \
     --model Qwen/Qwen2-72B-Instruct \
@@ -89,43 +111,33 @@ python -m vllm.entrypoints.openai.api_server \
     --trust-remote-code
 ```
 
-### Option 2: Local Development (Ollama)
-For local prototyping on MacBooks or consumer GPUs (automatically applies 4-bit quantization).
-
-```bash
-# Pull and run the 7B Qwen2 model
-ollama run qwen2:7b
-
-# Run DeepSeek-Coder for your local IDE
-ollama run deepseek-coder-v2
-```
-
-### Option 3: Python (Transformers)
-Native integration for custom architectures and specific generation logic.
-
+### Vision-Language Model Inference (Qwen-VL via Transformers)
 ```python
 from transformers import AutoModelForCausalLM, AutoTokenizer
-device = "cuda"
+from transformers.image_utils import load_image
 
-model = AutoModelForCausalLM.from_pretrained(
-    "Qwen/Qwen2-7B-Instruct",
-    torch_dtype="auto",
-    device_map="auto"
-)
-tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2-7B-Instruct")
+model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen-VL-Chat", device_map="cuda", trust_remote_code=True)
+tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen-VL-Chat", trust_remote_code=True)
 
-prompt = "Write a highly optimized quicksort algorithm in Python."
-messages = [
-    {"role": "system", "content": "You are a Principal AI Engineer."},
-    {"role": "user", "content": prompt}
-]
-text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-model_inputs = tokenizer([text], return_tensors="pt").to(device)
+# Pass an image URL or base64
+query = tokenizer.from_list_format([
+    {'image': 'https://example.com/system_architecture_diagram.jpg'},
+    {'text': 'Extract the microservices architecture shown in this diagram.'},
+])
 
-generated_ids = model.generate(model_inputs.input_ids, max_new_tokens=512)
-response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
-print(response)
+inputs = tokenizer(query, return_tensors='pt').to("cuda")
+pred = model.generate(**inputs, max_new_tokens=512)
+print(tokenizer.decode(pred.cpu()[0], skip_special_tokens=True))
 ```
+
+---
+
+## ⚠️ Enterprise Risk: Alignment & Censorship
+
+When integrating Chinese open-source models into Western enterprise architectures, Systems Architects must understand their alignment profile.
+- **Political Alignment:** These models are heavily aligned (censored) regarding Chinese political topics, historical events, and state policies to comply with local regulations.
+- **The B2B Trade-off:** While they may refuse prompts about specific geopolitical topics, this censorship **rarely bleeds into technical domains**. Their performance in Python coding, SQL generation, Mathematical reasoning, and Data Extraction remains fundamentally unaffected.
+- **Strategy:** If your product involves open-ended conversational chatbots for general consumers, extensive guardrails or further alignment (RLHF) is required. If your product is a B2B coding copilot or data-parsing agent, they are incredibly safe and efficient.
 
 ---
 
