@@ -1,12 +1,12 @@
 <div align="center">
 
 # 🐉 The Chinese Open-Source AI Renaissance
-**An Architectural Guide to the Models Beating Llama-3**
+**The Definitive Architectural Guide to the Eastern Models Beating Llama-3**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/karidasd/Chinese-OpenSource-AI/graphs/commit-activity)
 
-*A definitive technical breakdown of the Eastern AI ecosystem. Why models from Alibaba, DeepSeek, and 01.AI are dominating global benchmarks, how their architectures fundamentally reduce inference costs, and how to deploy them locally.*
+*A masterclass technical breakdown of the Eastern AI ecosystem. Exploring why models from Alibaba, DeepSeek, and 01.AI are dominating global benchmarks, how their architectures fundamentally reduce inference costs, and how to deploy them locally.*
 
 </div>
 
@@ -16,31 +16,43 @@
 
 For years, the Open-Source AI narrative was dominated by Silicon Valley (Meta's Llama, Mistral, Databricks). In 2024, the paradigm violently shifted East. Chinese open-weights models are currently achieving State-of-the-Art (SOTA) performance across global benchmarks, frequently surpassing proprietary models like GPT-4o and Claude 3.5 Sonnet in coding, mathematics, and long-context retrieval, while operating at a fraction of the parameter cost.
 
-This repository serves as a Senior Architect's guide to understanding, deploying, and leveraging these models.
+This repository serves as a Senior Architect's guide to understanding, deploying, and leveraging these models in production environments.
 
 ---
 
 ## 🏛️ The "Four Dragons" (Leading Ecosystems)
 
 ### 1. Alibaba Cloud (Qwen)
-The **Qwen-2** series (Qwen2-72B-Instruct) is widely considered the undisputed king of Open-Source LLMs as of mid-2024.
-- **Strengths:** Peerless multilingual capabilities (29 languages natively supported), exceptional coding proficiency (surpassing Llama-3 70B), and robust vision-language models (Qwen-VL).
-- **Architecture:** Dense transformer architecture with SwiGLU activation, RoPE, and Grouped-Query Attention (GQA).
+The **Qwen-2** series is widely considered the undisputed king of Open-Source LLMs as of mid-2024.
+- 🔗 **Official Links:** [HuggingFace](https://huggingface.co/Qwen) | [GitHub Repository](https://github.com/QwenLM/Qwen2) | [Technical Report](https://arxiv.org/abs/2407.10671)
+- **Strengths:** Peerless multilingual capabilities (29 languages natively supported) and exceptional coding proficiency (surpassing Llama-3 70B).
+- **Architecture:** Dense transformer architecture utilizing SwiGLU activation, dual-chunk RoPE (Rotary Position Embedding) for context scaling up to 128K, and Grouped-Query Attention (GQA).
 
 ### 2. DeepSeek (DeepSeek-V2 & DeepSeek-Coder)
 DeepSeek shocked the industry by training a 236B parameter MoE model that costs incredibly little to train and serve.
-- **Strengths:** Coding, Math, and unbelievable cost-efficiency.
+- 🔗 **Official Links:** [HuggingFace](https://huggingface.co/deepseek-ai) | [GitHub Repository](https://github.com/deepseek-ai/DeepSeek-V2) | [DeepSeek-V2 Paper](https://arxiv.org/abs/2405.04434)
+- **Strengths:** Coding, Math, and unbelievable API cost-efficiency.
 - **Architecture (The Secret Sauce):** 
   - **MLA (Multi-Head Latent Attention):** They compressed the KV Cache into a latent vector, reducing memory overhead during inference by 90% compared to standard MHA. This makes serving massive models incredibly cheap.
   - **DeepSeekMoE:** Advanced sparse routing. Out of 236B parameters, only 21B are active during a forward pass.
 
 ### 3. 01.AI (Yi Series)
 Founded by Kai-Fu Lee, the **Yi-1.5** series focuses on massive context windows and pristine data quality.
-- **Strengths:** 200K+ context windows. Extremely high quality pre-training data resulting in powerful reasoning in smaller 34B form factors.
+- 🔗 **Official Links:** [HuggingFace](https://huggingface.co/01-ai) | [GitHub Repository](https://github.com/01-ai/Yi-1.5) | [Technical Report](https://arxiv.org/abs/2403.04652)
+- **Strengths:** 200K+ context windows with near-perfect needle-in-a-haystack retrieval. Extremely high quality pre-training data resulting in powerful reasoning in smaller 34B form factors.
 
 ### 4. Zhipu AI (GLM-4)
 The General Language Model (GLM) series is a powerhouse originating from Tsinghua University.
-- **Strengths:** GLM-4 is highly optimized for complex instruction following and tool-use (Function Calling/Agentic Workflows).
+- 🔗 **Official Links:** [HuggingFace](https://huggingface.co/THUDM) | [GitHub Repository](https://github.com/THUDM/GLM-4) | [GLM-4 Release](https://chatglm.cn/blog)
+- **Strengths:** GLM-4 is highly optimized for complex instruction following, multi-turn dialogue, and tool-use (Function Calling/Agentic Workflows).
+
+---
+
+## 👁️ The Rise of Eastern Vision-Language Models (VLMs)
+Beyond text, Chinese models are currently crushing the Vision leaderboards, particularly in OCR (Optical Character Recognition) and complex document parsing.
+- **Qwen-VL-Max:** Frequently outperforms GPT-4V in reading dense tables, charts, and mathematical equations from images.
+- **DeepSeek-VL:** Designed with an extreme focus on high-resolution image understanding without hallucinating text.
+- **GLM-4V:** Exceptional at grounding visual information to tool-use, allowing agents to execute GUI actions based on screenshots.
 
 ---
 
@@ -55,16 +67,16 @@ The General Language Model (GLM) series is a powerhouse originating from Tsinghu
 | **DeepSeek-V2** | 21B | 128K | 78.5 | 81.1 | 88.2 |
 | **Mistral Large** | Dense | 32K | 81.2 | 81.0 | 91.2 |
 
-> *Observation:* Qwen2-72B matches or beats Llama-3 70B across almost all reasoning and coding metrics, while DeepSeek-V2 achieves comparable performance while activating only 21B parameters.
+> *Observation:* Qwen2-72B matches or beats Llama-3 70B across almost all reasoning and coding metrics, while DeepSeek-V2 achieves comparable performance while activating only 21B parameters, completely shifting the economics of AI hosting.
 
 ---
 
 ## 🚀 Deployment & Serving Guide
 
-How to deploy these models locally or in your private cloud, bypassing OpenAI APIs.
+How to deploy these models locally or in your private cloud, bypassing proprietary APIs entirely.
 
 ### Option 1: High-Throughput Serving (vLLM)
-For production environments, **vLLM** is required to utilize PagedAttention. It fully supports Qwen2 and DeepSeek.
+For production environments, **vLLM** is required to utilize PagedAttention. It fully supports Qwen2 and DeepSeek architectures.
 
 ```bash
 # Install vLLM
@@ -84,12 +96,12 @@ For local prototyping on MacBooks or consumer GPUs (automatically applies 4-bit 
 # Pull and run the 7B Qwen2 model
 ollama run qwen2:7b
 
-# Or DeepSeek-Coder for your local IDE
+# Run DeepSeek-Coder for your local IDE
 ollama run deepseek-coder-v2
 ```
 
 ### Option 3: Python (Transformers)
-Native integration for custom pipelines.
+Native integration for custom architectures and specific generation logic.
 
 ```python
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -121,10 +133,19 @@ print(response)
 
 To understand why these models are disruptive, we must look at the **KV Cache bottleneck**.
 
-In standard autoregressive LLMs (like Llama-2), caching Key/Value pairs during generation consumes massive amounts of VRAM. A 100K context window can easily consume 40GB of VRAM *just for the cache*, entirely independent of the model weights. 
+In standard autoregressive LLMs (like Llama-2/3), caching Key/Value pairs during generation consumes massive amounts of VRAM. A 100K context window can easily consume 40GB of VRAM *just for the cache*, entirely independent of the model weights. 
 
-**DeepSeek's Solution (MLA):** DeepSeek-V2 uses Multi-Head Latent Attention. Instead of caching large Key and Value matrices separately for every head, it compresses them into a single, low-dimensional latent vector `c_t`. During inference, it "decompresses" this vector on the fly using learned projection matrices. 
+**DeepSeek's Solution (MLA):** DeepSeek-V2 uses Multi-Head Latent Attention. Instead of caching large Key and Value matrices separately for every attention head, it compresses them into a single, low-dimensional latent vector `c_t`. During inference, it "decompresses" this vector on the fly using learned projection matrices. 
 > *Result:* A 90% reduction in KV Cache footprint. You can serve massive batch sizes of DeepSeek-V2 on hardware that would OOM instantly with Llama-3.
+
+---
+
+## 🔗 Recommended Resources
+
+Want to dive deeper into Senior-level System Design and the "Dark Arts" of AI Architecture?
+- 🌐 **[Dimitris Karydas - Live Portfolio](https://karidasd.github.io/)**: Explore my complete body of work, custom LLM architectures, and agentic workflows.
+- 🎓 **[The AI Strategy Masterclass](https://github.com/karidasd/AI-Strategy-Session)**: Learn how to reverse-engineer automated ATS systems and master Machiavellian system design.
+- 😈 **[The Gold Edition: AI Interview Cheatsheets](https://github.com/karidasd/Tech-interview-cheatsheets)**: My open-source repository containing 300+ Machiavellian interview questions.
 
 ---
 
